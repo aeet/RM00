@@ -1,12 +1,12 @@
 {
-    "sqltools.connections": [
-        {
-            "previewLimit": 50,
-            "driver": "SQLite",
-            "name": "local",
-            "group": "ycloud",
-            "database": "${workspaceFolder:ycloud}/ent.db"
-        }
-    ],
-    "sqltools.useNodeRuntime": true
+  "eslint.useFlatConfig": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "always"
+  },
+  "tailwindCSS.classAttributes": [
+    "class",
+    "className",
+    "ngClass",
+    "ui"
+  ]
 }

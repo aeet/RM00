@@ -1,3 +1,5 @@
+# Nuxt dev/build outputs
+.output
 .data
 .nuxt
 .nitro
@@ -20,3 +22,10 @@ logs
 .env
 .env.*
 !.env.example
+
+# VSC
+.history
+
+
+runtime/postgres
+runtime/influxdb
