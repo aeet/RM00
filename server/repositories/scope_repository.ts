@@ -3,9 +3,10 @@ import type { GrantIdentifier, OAuthScope, OAuthScopeRepository } from '@jmondi/
 
 import type { Client } from '../entities/client.js'
 import { Scope } from '../entities/scope.js'
+import { usePrisma } from '../composables/use_prisma.js'
 
 export class ScopeRepository implements OAuthScopeRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaClient = usePrisma()) {}
 
   async getAllByIdentifiers(scopeNames: string[]): Promise<Scope[]> {
     const scopes = await this.prisma.oAuthScope.findMany({

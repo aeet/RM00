@@ -2,9 +2,9 @@ import { AuthorizationServer } from '@jmondi/oauth2-server'
 import { ClientRepository } from '../../repositories/client_repository'
 import { TokenRepository } from '../../repositories/token_repository'
 import { ScopeRepository } from '../../repositories/scope_repository'
-import { CustomJwtRepository } from '../../repositories/custom_jwt_repository'
 import { AuthCodeRepository } from '../../repositories/auth_code_repository'
 import { UserRepository } from '../../repositories/user_repository'
+import { CustomJwtRepository } from '~~/server/repositories/custom_jwt_repository'
 
 const createOAuthServer = (): () => AuthorizationServer => {
   let oauthServer: AuthorizationServer | null = null

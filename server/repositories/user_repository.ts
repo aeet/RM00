@@ -3,9 +3,10 @@ import type { PrismaClient } from '@prisma/client'
 
 import type { Client } from '../entities/client.js'
 import { User } from '../entities/user.js'
+import { usePrisma } from '../composables/use_prisma.js'
 
 export class UserRepository implements OAuthUserRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaClient = usePrisma()) {}
 
   async getUserByCredentials(
     identifier: string,

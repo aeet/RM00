@@ -6,9 +6,10 @@ import { AuthCode } from '../entities/auth_code.js'
 import type { Client } from '../entities/client.js'
 import type { Scope } from '../entities/scope.js'
 import type { User } from '../entities/user.js'
+import { usePrisma } from '../composables/use_prisma.js'
 
 export class AuthCodeRepository implements OAuthAuthCodeRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaClient = usePrisma()) {}
 
   async getByIdentifier(authCodeCode: string): Promise<AuthCode> {
     const entity = await this.prisma.oAuthAuthCode.findUnique({
