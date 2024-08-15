@@ -10,22 +10,23 @@ import { usePrisma } from '../composables/use_prisma.js'
 export class TokenRepository implements OAuthTokenRepository {
   constructor(private readonly prisma: PrismaClient = usePrisma()) {}
 
-  async findById(accessToken: string): Promise<Token> {
-    const _token = await this.prisma.oAuthToken.findUnique({
+  async issueToken(client: Client, scopes: Scope[], user?: User): Promise<Token> {
+    const prisma = usePrisma()
+    const token = await prisma.oAuthToken.findFirst({
       where: {
-        accessToken
+        clientId: client.id,
+        userId: user?.id,
+        accessTokenExpiresAt: {
+          lt: new Date()
+        }
       },
       include: {
-        user: true,
         client: true,
-        scopes: true
+        user: true
       }
     })
-    if (!_token) throw new Error('Token not found')
-    return new Token(_token)
-  }
+    if (token) return new Token(token)
 
-  async issueToken(client: Client, scopes: Scope[], user?: User): Promise<Token> {
     const { accessTokenExpiresAt } = useRuntimeConfig().oauth.server
     return new Token({
       accessToken: generateRandomToken(),

@@ -26,16 +26,16 @@ export default defineNuxtConfig({
       login: {
         url: '/token/login',
         method: 'post',
-        property: 'data'
-      },
-      logout: {
-        url: '/logout',
-        method: 'get'
+        property: null
       },
       refresh: {
         url: '/token/refresh',
         method: 'post',
-        property: 'data'
+        property: null
+      },
+      logout: {
+        url: '/logout',
+        method: 'get'
       },
       session: {
         url: '/session',
@@ -49,11 +49,13 @@ export default defineNuxtConfig({
       logout: '/logout'
     },
     accessToken: {
+      path: 'access_token',
       cookie: {
         name: 'rm00.token'
       }
     },
     refreshToken: {
+      path: 'refresh_token',
       cookie: {
         name: 'rm00.refresh'
       }
@@ -81,11 +83,12 @@ export default defineNuxtConfig({
         requiresS256: true,
         accessTokenExpiresAt: '1d',
         refreshTokenExpiresAt: '7d',
-        codeExpiresAt: '15m'
+        codeExpiresAt: '15m',
+        debug: true
       },
       client: {
-        clientId: 'd455a897-1758-42a9-8b5e-d25f6e1cb113',
-        secret: 'd455a897-1758-42a9-8b5e-d25f6e1cb113'
+        clientId: '1f82a18c-b97c-4a57-a1ef-1b59b0e8c6d8',
+        secret: 'asdf'
       }
     }
   },

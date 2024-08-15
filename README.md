@@ -1,0 +1,3 @@
+- nuxt
+- nitro oauth2 server
+- nuxt-auth-toolkit

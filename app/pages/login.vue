@@ -43,8 +43,7 @@ const { credentials, pending, errorMsg, error, login, resetError } = useLogin({
   redirect: '/dashboard',
   credentials: {
     username: 'admin',
-    password: 123456,
-    grant_type: 'password'
+    password: '123456'
   }
 })
 </script>

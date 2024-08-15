@@ -1,14 +1,8 @@
-import { ErrorType, OAuthException, OAuthRequest, OAuthResponse } from '@jmondi/oauth2-server'
+import type { OAuthResponse } from '@jmondi/oauth2-server'
+import { ErrorType, OAuthException, OAuthRequest } from '@jmondi/oauth2-server'
 import type { H3Event } from 'h3'
 
-export function responseFromH3(event: H3Event): OAuthResponse {
-  return new OAuthResponse({
-    status: getResponseStatus(event),
-    headers: getResponseHeaders(event)
-  })
-}
-
-export function responseWithH3(event: H3Event, oauthResponse: OAuthResponse): void {
+export function responseWithH3(event: H3Event, oauthResponse: OAuthResponse, wrapResp?: string): void {
   if (oauthResponse.status === 302) {
     if (typeof oauthResponse.headers.location !== 'string' || oauthResponse.headers.location === '') {
       throw new OAuthException(`missing redirect location`, ErrorType.InvalidRequest)
@@ -23,8 +17,13 @@ export function responseWithH3(event: H3Event, oauthResponse: OAuthResponse): vo
     )
   }
 
+  let body = oauthResponse.body
+  if (wrapResp) {
+    body = { [wrapResp]: body }
+  }
+
   event.respondWith(
-    new Response(JSON.stringify(oauthResponse.body), {
+    new Response(JSON.stringify(body), {
       status: oauthResponse.status,
       headers: oauthResponse.headers
     })

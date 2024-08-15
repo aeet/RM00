@@ -9,16 +9,17 @@ export class UserRepository implements OAuthUserRepository {
   constructor(private readonly prisma: PrismaClient = usePrisma()) {}
 
   async getUserByCredentials(
-    identifier: string,
+    account: string,
     password?: string,
     _grantType?: GrantIdentifier,
     _client?: Client
   ): Promise<User> {
     const user = new User(
       await this.prisma.user.findUnique({
-        where: { id: identifier }
+        where: { account: account }
       })
     )
+
     if (!user) throw new Error('user not found')
     if (password) await user.verify(password)
     return user
