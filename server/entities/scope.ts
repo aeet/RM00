@@ -5,8 +5,8 @@ export class Scope implements ScopeModel, OAuthScope {
   readonly id: string
   name: string
 
-  constructor(scope: ScopeModel) {
-    this.id = scope.id
-    this.name = scope.name
+  constructor(entity: ScopeModel) {
+    this.id = entity.id
+    this.name = entity.name
   }
 }

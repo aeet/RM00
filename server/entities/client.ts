@@ -1,28 +1,28 @@
-import type { OAuthClient as ClientModel, OAuthScope as ScopeModel } from '@prisma/client'
-import type { OAuthClient, GrantIdentifier } from '@jmondi/oauth2-server'
-import { Scope } from './scope'
+import type { OAuthClient as ClientModel, $Enums, OAuthScope as ScopeModel } from '@prisma/client'
+import type { OAuthClient } from '@jmondi/oauth2-server'
+
+import { Scope } from './scope.js'
 
 type Relations = {
   scopes: ScopeModel[]
-  allowedGrants: GrantIdentifier[]
 }
 
 export class Client implements ClientModel, OAuthClient {
   readonly id: string
-  clientId: string
   name: string
-  secret: string
+  secret: string | null
   redirectUris: string[]
-  allowedGrants: GrantIdentifier[]
+  allowedGrants: $Enums.GrantTypes[]
   scopes: Scope[]
+  createdAt: Date
 
-  constructor(client: ClientModel & Partial<Relations>) {
-    this.id = client.id
-    this.clientId = client.clientId
-    this.name = client.name
-    this.secret = client.secret
-    this.redirectUris = client.redirectUris
-    this.allowedGrants = client.allowedGrants
-    this.scopes = client.scopes?.map(scope => new Scope(scope))
+  constructor({ scopes, ...entity }: ClientModel & Partial<Relations>) {
+    this.id = entity.id
+    this.name = entity.name
+    this.secret = entity.secret ?? null
+    this.redirectUris = entity.redirectUris
+    this.allowedGrants = entity.allowedGrants
+    this.scopes = scopes?.map(s => new Scope(s)) ?? []
+    this.createdAt = new Date()
   }
 }

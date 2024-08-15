@@ -7,108 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model OAuthAuthCode {
-  id                  String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  code                String              @unique @db.VarChar(255)
-  redirectUri         String?             @db.VarChar(255)
-  codeChallenge       String?             @db.VarChar(255)
-  codeChallengeMethod CodeChallengeMethod
-  expiresAt           DateTime            @db.Timestamp(6)
-  userId              String?             @db.Uuid
-  clientId            String?             @db.Uuid
-  OAuthClient         OAuthClient?        @relation(fields: [clientId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  OAuthUser           OAuthUser?          @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  OAuthCodeScope      OAuthCodeScope[]
-  OAuthToken          OAuthToken[]
-}
+model User {
+  id             String          @id @db.Uuid
+  account        String          @unique
+  email          String          @unique
+  phone          String          @unique
+  passwordHash   String          @db.VarChar(255)
+  OAuthAuthCodes OAuthAuthCode[]
+  OAuthTokens    OAuthToken[]
 
-model OAuthClient {
-  id               String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  clientId         String             @unique @db.VarChar(255)
-  name             String             @db.VarChar(255)
-  secret           String?            @db.VarChar(255)
-  redirectUris     String[]
-  OAuthAuthCode    OAuthAuthCode[]
-  OAuthClientGrant OAuthClientGrant[]
-  OAuthClientScope OAuthClientScope[]
-  OAuthToken       OAuthToken[]
-}
-
-model OAuthClientGrant {
-  id          String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  clientId    String?      @db.Uuid
-  grantType   GrantType
-  OAuthClient OAuthClient? @relation(fields: [clientId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model OAuthClientScope {
-  id          String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  clientId    String?      @db.Uuid
-  scopeId     String?      @db.Uuid
-  OAuthClient OAuthClient? @relation(fields: [clientId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  OAuthScope  OAuthScope?  @relation(fields: [scopeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model OAuthCodeScope {
-  id            String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  oauthCodeId   String?        @db.Uuid
-  scopeId       String?        @db.Uuid
-  OAuthAuthCode OAuthAuthCode? @relation(fields: [oauthCodeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  OAuthScope    OAuthScope?    @relation(fields: [scopeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model OAuthScope {
-  id               String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name             String             @unique @db.VarChar(255)
-  OAuthClientScope OAuthClientScope[]
-  OAuthCodeScope   OAuthCodeScope[]
-  OAuthTokenScope  OAuthTokenScope[]
-}
-
-model OAuthToken {
-  id                    String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  accessToken           String            @unique @db.VarChar(255)
-  accessTokenExpiresAt  DateTime          @db.Timestamp(6)
-  refreshToken          String?           @unique @db.VarChar(255)
-  refreshTokenExpiresAt DateTime?         @db.Timestamp(6)
-  clientId              String?           @db.Uuid
-  userId                String?           @db.Uuid
-  originatingAuthCodeId String?           @db.Uuid
-  OAuthClient           OAuthClient?      @relation(fields: [clientId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  OAuthAuthCode         OAuthAuthCode?    @relation(fields: [originatingAuthCodeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  OAuthUser             OAuthUser?        @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  OAuthTokenScope       OAuthTokenScope[]
-}
-
-model OAuthTokenScope {
-  id         String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  tokenId    String?     @db.Uuid
-  scopeId    String?     @db.Uuid
-  OAuthScope OAuthScope? @relation(fields: [scopeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  OAuthToken OAuthToken? @relation(fields: [tokenId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model OAuthUser {
-  id            String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name          String          @db.VarChar(255)
-  account       String          @db.VarChar(255)
-  email         String          @db.VarChar(255)
-  password      String?         @db.VarChar(255)
-  OAuthAuthCode OAuthAuthCode[]
-  OAuthToken    OAuthToken[]
-}
-
-enum CodeChallengeMethod {
-  S256
-  plain
-}
-
-enum GrantType {
-  client_credentials
-  authorization_code
-  refresh_token
-  implicit
-  password
+  @@index([account], name: "idx_user_account")
+  @@index([phone], name: "idx_user_phone")
+  @@index([email], name: "idx_user_email")
 }
 
 enum GrantTypes {
@@ -117,4 +27,73 @@ enum GrantTypes {
   refresh_token
   implicit
   password
+}
+
+model OAuthClient {
+  id               String             @id @default(uuid()) @db.Uuid
+  name             String             @db.VarChar(255)
+  secret           String?            @db.VarChar(255)
+  redirectUris     String[]
+  allowedGrants    GrantTypes[]
+  scopes           OAuthScope[]
+  authCodes        OAuthAuthCode[]
+  tokens           OAuthToken[]
+  OAuthClientScope OAuthClientScope[]
+}
+
+model OAuthClientScope {
+  clientId String      @db.Uuid
+  client   OAuthClient @relation(fields: [clientId], references: [id])
+  scopeId  String      @db.Uuid
+  scope    OAuthScope  @relation(fields: [scopeId], references: [id])
+
+  @@id([clientId, scopeId])
+  @@index([clientId], name: "idx_oauthclient_oauthscope_clientid")
+  @@index([scopeId], name: "idx_oauthclient_oauthscope_scopeid")
+  @@map("oauthClient_oauthScope")
+}
+
+enum CodeChallengeMethod {
+  S256
+  plain
+}
+
+model OAuthAuthCode {
+  code                String              @id
+  redirectUri         String?
+  codeChallenge       String?
+  codeChallengeMethod CodeChallengeMethod @default(plain)
+  expiresAt           DateTime
+  user                User?               @relation(fields: [userId], references: [id])
+  userId              String?             @db.Uuid
+  client              OAuthClient         @relation(fields: [clientId], references: [id])
+  clientId            String              @db.Uuid
+  scopes              OAuthScope[]
+}
+
+model OAuthToken {
+  accessToken           String       @id
+  accessTokenExpiresAt  DateTime
+  refreshToken          String?      @unique
+  refreshTokenExpiresAt DateTime?
+  client                OAuthClient  @relation(fields: [clientId], references: [id])
+  clientId              String       @db.Uuid
+  user                  User?        @relation(fields: [userId], references: [id])
+  userId                String?      @db.Uuid
+  scopes                OAuthScope[]
+
+  @@index([accessToken], name: "idx_oauthtoken_accesstoken")
+  @@index([refreshToken], name: "idx_oauthtoken_refreshtoken")
+}
+
+model OAuthScope {
+  id            String          @id @db.Uuid
+  name          String
+  OAuthClients  OAuthClient[]
+  OAuthAuthCode OAuthAuthCode[]
+  OAuthToken    OAuthToken[]
+
+  OAuthClientScope OAuthClientScope[]
+
+  @@index([name], name: "idx_oauthscope_name")
 }

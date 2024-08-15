@@ -1,4 +1,9 @@
-import type { OAuthScope as ScopeModel, OAuthClient as ClientModel, OAuthUser as UserModel, OAuthToken as TokenModel } from '@prisma/client'
+import type {
+  OAuthToken as TokenModel,
+  OAuthScope as ScopeModel,
+  OAuthClient as ClientModel,
+  User as UserModel
+} from '@prisma/client'
 import type { OAuthToken } from '@jmondi/oauth2-server'
 
 import { Client } from './client.js'
@@ -15,7 +20,6 @@ type Required = {
 }
 
 export class Token implements TokenModel, OAuthToken {
-  readonly id: string
   accessToken: string
   accessTokenExpiresAt: Date
   refreshToken: string | null
@@ -25,7 +29,7 @@ export class Token implements TokenModel, OAuthToken {
   user: User | null
   userId: string | null
   scopes: Scope[]
-  originatingAuthCodeId: string | null
+  createdAt: Date
 
   constructor({ client, user, scopes, ...entity }: TokenModel & Required & Relations) {
     this.accessToken = entity.accessToken
@@ -37,6 +41,7 @@ export class Token implements TokenModel, OAuthToken {
     this.client = new Client(client)
     this.clientId = entity.clientId
     this.scopes = scopes?.map(s => new Scope(s)) ?? []
+    this.createdAt = new Date()
   }
 
   get isRevoked() {

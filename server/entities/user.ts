@@ -1,28 +1,28 @@
-import type { OAuthUser as UserModel } from '@prisma/client'
-import type { OAuthUser } from '@jmondi/oauth2-server'
+import type { User as UserModel } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import type { OAuthUser } from '@jmondi/oauth2-server'
 
 export class User implements UserModel, OAuthUser {
   readonly id: string
-  name: string
-  account: string
   email: string
-  password: string
+  passwordHash: string
+  account: string
+  phone: string
 
-  constructor(user: UserModel) {
-    this.id = user.id
-    this.name = user.name
-    this.account = user.account
-    this.email = user.email
-    this.password = user.password
+  constructor(entity: UserModel) {
+    this.id = entity.id
+    this.email = entity.email
+    this.passwordHash = entity.passwordHash
+    this.account = entity.account
+    this.phone = entity.phone
   }
 
   async setPassword(password: string) {
-    this.password = await bcrypt.hash(password, 12)
+    this.passwordHash = await bcrypt.hash(password, 12)
   }
 
   async verify(password: string) {
-    if (!(await bcrypt.compare(password, this.password))) {
+    if (!(await bcrypt.compare(password, this.passwordHash))) {
       throw new Error('invalid password')
     }
   }

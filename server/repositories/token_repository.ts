@@ -1,34 +1,66 @@
-import { DateInterval, generateRandomToken, type OAuthTokenRepository } from '@jmondi/oauth2-server'
-import { Token } from '../entities/token'
-import type { Scope } from '../entities/scope'
-import type { User } from '../entities/user'
-import type { Client } from '../entities/client'
-import { usePrisma } from '../composables/use_prisma'
+import type { PrismaClient } from '@prisma/client'
+
+import { DateInterval, generateRandomToken, type OAuthClient, type OAuthTokenRepository } from '@jmondi/oauth2-server'
+import type { Client } from '../entities/client.js'
+import type { Scope } from '../entities/scope.js'
+import { Token } from '../entities/token.js'
+import type { User } from '../entities/user.js'
 
 export class TokenRepository implements OAuthTokenRepository {
-  async issueToken(client: Client, scopes: Scope[], user?: User | null): Promise<Token> {
+  constructor(private readonly prisma: PrismaClient) {}
+
+  async findById(accessToken: string): Promise<Token> {
+    const _token = await this.prisma.oAuthToken.findUnique({
+      where: {
+        accessToken
+      },
+      include: {
+        user: true,
+        client: true,
+        scopes: true
+      }
+    })
+    if (!_token) throw new Error('Token not found')
+    return new Token(_token)
+  }
+
+  async issueToken(client: Client, scopes: Scope[], user?: User): Promise<Token> {
     const { accessTokenExpiresAt } = useRuntimeConfig().oauth.server
     return new Token({
-      id: null,
       accessToken: generateRandomToken(),
       accessTokenExpiresAt: new DateInterval(accessTokenExpiresAt).getEndDate(),
       refreshToken: null,
       refreshTokenExpiresAt: null,
       client,
-      clientId: client.clientId,
+      clientId: client.id,
       user: user,
-      userId: user.id ?? null,
-      scopes: scopes,
-      originatingAuthCodeId: null
+      userId: user?.id ?? null,
+      scopes
     })
   }
 
-  async issueRefreshToken(token: Token, _client: Client): Promise<Token> {
-    const prisma = usePrisma()
+  async getByRefreshToken(refreshToken: string): Promise<Token> {
+    const _token = await this.prisma.oAuthToken.findUnique({
+      where: { refreshToken },
+      include: {
+        client: true,
+        scopes: true,
+        user: true
+      }
+    })
+    if (!_token) throw new Error('Token not found')
+    return new Token(_token)
+  }
+
+  async isRefreshTokenRevoked(token: Token): Promise<boolean> {
+    return Date.now() > (token.refreshTokenExpiresAt?.getTime() ?? 0)
+  }
+
+  async issueRefreshToken(token: Token, _: OAuthClient): Promise<Token> {
     const { refreshTokenExpiresAt } = useRuntimeConfig().oauth.server
     token.refreshToken = generateRandomToken()
     token.refreshTokenExpiresAt = new DateInterval(refreshTokenExpiresAt).getEndDate()
-    await prisma.oAuthToken.update({
+    await this.prisma.oAuthToken.update({
       where: {
         accessToken: token.accessToken
       },
@@ -40,9 +72,8 @@ export class TokenRepository implements OAuthTokenRepository {
     return token
   }
 
-  async persist(token: Token): Promise<void> {
-    const prisma = usePrisma()
-    await prisma.oAuthToken.upsert({
+  async persist({ user, client, scopes, ...token }: Token): Promise<void> {
+    await this.prisma.oAuthToken.upsert({
       where: {
         accessToken: token.accessToken
       },
@@ -51,84 +82,17 @@ export class TokenRepository implements OAuthTokenRepository {
     })
   }
 
-  async revoke(token: Token): Promise<void> {
-    const prisma = usePrisma()
-    token.revoke()
-    await prisma.oAuthToken.update({
+  async revoke(accessToken: Token): Promise<void> {
+    accessToken.revoke()
+    await this.update(accessToken)
+  }
+
+  private async update({ user, client, scopes, ...token }: Token): Promise<void> {
+    await this.prisma.oAuthToken.update({
       where: {
         accessToken: token.accessToken
       },
       data: token
     })
-  }
-
-  async isRefreshTokenRevoked(token: Token): Promise<boolean> {
-    return Date.now() > (token.refreshTokenExpiresAt?.getTime() ?? 0)
-  }
-
-  async getByRefreshToken(refreshToken: string): Promise<Token> {
-    const prisma = usePrisma()
-    const _token = await prisma.oAuthToken.findUnique({
-      where: { refreshToken },
-      include: {
-        OAuthClient: {
-          include: {
-            OAuthClientGrant: true,
-            OAuthAuthCode: true,
-            OAuthClientScope: { include: { OAuthScope: true } }
-          }
-        },
-        OAuthTokenScope: { include: { OAuthScope: true } },
-        OAuthUser: true
-      }
-    })
-    if (!_token) throw new Error('token not found')
-    const token = new Token({
-      id: _token.id,
-      accessToken: _token.accessToken,
-      accessTokenExpiresAt: _token.accessTokenExpiresAt,
-      refreshToken: _token.refreshToken,
-      refreshTokenExpiresAt: _token.refreshTokenExpiresAt,
-      client: _token.OAuthClient,
-      clientId: _token.clientId,
-      user: _token.OAuthUser,
-      userId: _token.userId,
-      scopes: _token.OAuthTokenScope.map(s => s.OAuthScope),
-      originatingAuthCodeId: _token.originatingAuthCodeId ?? null
-    })
-    return token
-  }
-
-  async getByAccessToken?(accessToken: string): Promise<Token> {
-    const prisma = usePrisma()
-    const _token = await prisma.oAuthToken.findUnique({
-      where: { accessToken },
-      include: {
-        OAuthClient: {
-          include: {
-            OAuthClientGrant: true,
-            OAuthAuthCode: true,
-            OAuthClientScope: { include: { OAuthScope: true } }
-          }
-        },
-        OAuthTokenScope: { include: { OAuthScope: true } },
-        OAuthUser: true
-      }
-    })
-    if (!_token) throw new Error('token not found')
-    const token = new Token({
-      id: _token.id,
-      accessToken: _token.accessToken,
-      accessTokenExpiresAt: _token.accessTokenExpiresAt,
-      refreshToken: _token.refreshToken,
-      refreshTokenExpiresAt: _token.refreshTokenExpiresAt,
-      client: _token.OAuthClient,
-      clientId: _token.clientId,
-      user: _token.OAuthUser,
-      userId: _token.userId,
-      scopes: _token.OAuthTokenScope.map(s => s.OAuthScope),
-      originatingAuthCodeId: _token.originatingAuthCodeId ?? null
-    })
-    return token
   }
 }

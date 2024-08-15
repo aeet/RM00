@@ -1,52 +1,40 @@
-import { DateInterval, generateRandomToken, type OAuthAuthCode, type OAuthAuthCodeRepository } from '@jmondi/oauth2-server'
-import { usePrisma } from '../composables/use_prisma'
-import { AuthCode } from '../entities/auth_code'
-import type { User } from '../entities/user'
-import type { Client } from '../entities/client'
-import type { Scope } from '../entities/scope'
+import type { PrismaClient } from '@prisma/client'
+import type { OAuthAuthCode, OAuthAuthCodeRepository } from '@jmondi/oauth2-server'
+import { DateInterval, generateRandomToken } from '@jmondi/oauth2-server'
+
+import { AuthCode } from '../entities/auth_code.js'
+import type { Client } from '../entities/client.js'
+import type { Scope } from '../entities/scope.js'
+import type { User } from '../entities/user.js'
 
 export class AuthCodeRepository implements OAuthAuthCodeRepository {
+  constructor(private readonly prisma: PrismaClient) {}
+
   async getByIdentifier(authCodeCode: string): Promise<AuthCode> {
-    const prisma = usePrisma()
-    const _authCode = await prisma.oAuthAuthCode.findUnique({
+    const entity = await this.prisma.oAuthAuthCode.findUnique({
       where: {
         code: authCodeCode
       },
       include: {
-        OAuthClient: true,
-        OAuthCodeScope: {
-          include: {
-            OAuthScope: true
-          }
-        },
-        OAuthUser: true
+        client: true
       }
     })
-    if (!_authCode) throw new Error('auth code not found')
-    const authCode = new AuthCode({
-      id: _authCode.id,
-      code: _authCode.code,
-      codeChallenge: _authCode.codeChallenge,
-      codeChallengeMethod: _authCode.codeChallengeMethod,
-      redirectUri: _authCode.redirectUri,
-      expiresAt: _authCode.expiresAt,
-      userId: _authCode.userId,
-      user: _authCode.OAuthUser,
-      clientId: _authCode.clientId,
-      client: _authCode.OAuthClient,
-      scopes: _authCode.OAuthCodeScope.map(s => s.OAuthScope)
-    })
-    return authCode
+    if (!entity) throw new Error('AuthCode not found')
+    return new AuthCode(entity)
   }
 
-  issueAuthCode(client: Client, user: User | undefined, scopes: Scope[]): OAuthAuthCode | Promise<OAuthAuthCode> {
-    const { codeExpiresAt } = useRuntimeConfig().oauth.server
+  async isRevoked(authCodeCode: string): Promise<boolean> {
+    const authCode = await this.getByIdentifier(authCodeCode)
+    return authCode.isExpired
+  }
+
+  issueAuthCode(client: Client, user: User | undefined, scopes: Scope[]): OAuthAuthCode {
+    const { codeExpiresAt, requiresS256 } = useRuntimeConfig().oauth.server
     return new AuthCode({
-      id: null,
       redirectUri: null,
       code: generateRandomToken(),
       codeChallenge: null,
-      codeChallengeMethod: 'S256',
+      codeChallengeMethod: requiresS256 ? 'S256' : 'plain',
       expiresAt: new DateInterval(codeExpiresAt).getEndDate(),
       client,
       clientId: client.id,
@@ -56,19 +44,12 @@ export class AuthCodeRepository implements OAuthAuthCodeRepository {
     })
   }
 
-  async persist(authCode: AuthCode): Promise<void> {
-    const prisma = usePrisma()
-    await prisma.oAuthAuthCode.create({ data: authCode })
-  }
-
-  async isRevoked(authCodeCode: string): Promise<boolean> {
-    const authCode = await this.getByIdentifier(authCodeCode)
-    return authCode.isExpired
+  async persist({ user, client, scopes, ...authCode }: AuthCode): Promise<void> {
+    await this.prisma.oAuthAuthCode.create({ data: authCode })
   }
 
   async revoke(authCodeCode: string): Promise<void> {
-    const prisma = usePrisma()
-    await prisma.oAuthAuthCode.update({
+    await this.prisma.oAuthAuthCode.update({
       where: { code: authCodeCode },
       data: {
         expiresAt: new Date(0)

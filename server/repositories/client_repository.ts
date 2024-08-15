@@ -1,30 +1,28 @@
+import type { PrismaClient } from '@prisma/client'
 import type { GrantIdentifier, OAuthClient, OAuthClientRepository } from '@jmondi/oauth2-server'
-import { usePrisma } from '../composables/use_prisma'
-import { Client } from '../entities/client'
+
+import { Client } from '../entities/client.js'
 
 export class ClientRepository implements OAuthClientRepository {
+  constructor(private readonly prisma: PrismaClient) {}
+
   async getByIdentifier(clientId: string): Promise<Client> {
-    const prisma = usePrisma()
-    const _client = await prisma.oAuthClient.findUnique({
-      where: { clientId: clientId },
+    const client = await this.prisma.oAuthClient.findUnique({
+      where: {
+        id: clientId
+      },
       include: {
-        OAuthClientGrant: true,
-        OAuthClientScope: {
-          include: { OAuthScope: true }
-        }
+        scopes: true
       }
     })
-    if (!_client) throw new Error('client not found')
-    const client = new Client({
-      ..._client,
-      scopes: _client.OAuthClientScope.map(scope => scope.OAuthScope),
-      allowedGrants: _client.OAuthClientGrant.map(grant => grant.grantType)
-    })
-    return client
+    if (!client) throw new Error('Client not found')
+    return new Client(client)
   }
 
   async isClientValid(grantType: GrantIdentifier, client: OAuthClient, clientSecret?: string): Promise<boolean> {
-    if (client.secret && client.secret !== clientSecret) return false
+    if (client.secret && client.secret !== clientSecret) {
+      return false
+    }
     return client.allowedGrants.includes(grantType)
   }
 }

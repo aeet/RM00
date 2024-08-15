@@ -78,7 +78,7 @@ export default defineNuxtConfig({
       server: {
         secret: '123456',
         requiresPKCE: false,
-        requiresS256: false,
+        requiresS256: true,
         accessTokenExpiresAt: '1d',
         refreshTokenExpiresAt: '7d',
         codeExpiresAt: '15m'
