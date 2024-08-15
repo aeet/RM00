@@ -12,21 +12,39 @@ export class TokenRepository implements OAuthTokenRepository {
 
   async issueToken(client: Client, scopes: Scope[], user?: User): Promise<Token> {
     const prisma = usePrisma()
-    const token = await prisma.oAuthToken.findFirst({
-      where: {
-        clientId: client.id,
-        userId: user?.id,
-        accessTokenExpiresAt: {
-          lt: new Date()
+    // check if there is a valid token by client and user
+    if (client && user) {
+      const token = await prisma.oAuthToken.findFirst({
+        where: {
+          clientId: client.id,
+          userId: user?.id,
+          accessTokenExpiresAt: {
+            lt: new Date()
+          }
+        },
+        include: {
+          client: true,
+          user: true
         }
-      },
-      include: {
-        client: true,
-        user: true
-      }
-    })
-    if (token) return new Token(token)
-
+      })
+      if (token) return new Token(token)
+    }
+    // check if there is a valid token by client
+    if (client && !user) {
+      const token = await prisma.oAuthToken.findFirst({
+        where: {
+          clientId: client.id,
+          accessTokenExpiresAt: {
+            lt: new Date()
+          }
+        },
+        include: {
+          client: true
+        }
+      })
+      if (token) return new Token(token)
+    }
+    // create new token
     const { accessTokenExpiresAt } = useRuntimeConfig().oauth.server
     return new Token({
       accessToken: generateRandomToken(),
