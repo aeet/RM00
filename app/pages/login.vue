@@ -1,9 +1,5 @@
 <template>
   <div>
-    {{ data }}
-    <UButton @click="execute()">
-      test
-    </UButton>
     <div class="login-container">
       <form @submit.prevent="login(credentials)">
         <div class="form-group">
@@ -28,6 +24,9 @@
         {{ error }}
         {{ isAccessTokenExpired }}
         <div v-html="error?.stack" />
+        <UButton type="submit">
+          submit
+        </UButton>
       </form>
     </div>
   </div>
@@ -43,16 +42,9 @@ const { isAccessTokenExpired } = useAccessToken()
 const { credentials, pending, errorMsg, error, login, resetError } = useLogin({
   redirect: '/dashboard',
   credentials: {
-    grant_type: 'password',
-    client_id: 'CLIENT_RM_00',
-    client_secret: '2047a0d2-61af-512f-8909-f32b10077a93',
-    scopes: 'a b'
+    username: 'admin',
+    password: 123456,
+    grant_type: 'password'
   }
-})
-
-const { data, execute } = useLazyFetch('/demo', {
-  method: 'get',
-  immediate: false,
-  auth: false
 })
 </script>

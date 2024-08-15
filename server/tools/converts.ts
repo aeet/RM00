@@ -31,14 +31,18 @@ export function responseWithH3(event: H3Event, oauthResponse: OAuthResponse): vo
   )
 }
 
-export async function requestFromH3(event: H3Event): Promise<OAuthRequest> {
+export async function requestFromH3(event: H3Event, updatedBody?: Record<string, any>): Promise<OAuthRequest> {
   let query: Record<string, any> = {}
   let body: Record<string, any> = {}
   if (['GET', 'DELETE', 'HEAD', 'OPTIONS'].includes(event.method.toUpperCase())) {
     query = getQuery(event) as Record<string, any>
   }
   if (['POST', 'PUT', 'PATCH'].includes(event.method.toUpperCase())) {
-    body = await readBody(event) as Record<string, any>
+    if (updatedBody) {
+      body = updatedBody
+    } else {
+      body = await readBody(event)
+    }
   }
   return new OAuthRequest({
     query: query,

@@ -24,7 +24,7 @@ export default defineNuxtConfig({
     baseURL: '/',
     endpoints: {
       login: {
-        url: '/token',
+        url: '/token/login',
         method: 'post',
         property: 'data'
       },
@@ -33,8 +33,8 @@ export default defineNuxtConfig({
         method: 'get'
       },
       refresh: {
-        url: '/refresh',
-        method: 'get',
+        url: '/token/refresh',
+        method: 'post',
         property: 'data'
       },
       session: {
@@ -84,7 +84,8 @@ export default defineNuxtConfig({
         codeExpiresAt: '15m'
       },
       client: {
-        secret: 'client'
+        clientId: 'd455a897-1758-42a9-8b5e-d25f6e1cb113',
+        secret: 'd455a897-1758-42a9-8b5e-d25f6e1cb113'
       }
     }
   },
