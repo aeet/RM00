@@ -14,6 +14,9 @@ export class TokenRepository implements OAuthTokenRepository {
     const prisma = usePrisma()
     // check if there is a valid token by client and user
     if (client && user) {
+      console.log(11111111)
+      console.log(client)
+      console.log(user)
       const token = await prisma.oAuthToken.findFirst({
         where: {
           clientId: client.id,
@@ -27,10 +30,12 @@ export class TokenRepository implements OAuthTokenRepository {
           user: true
         }
       })
+      console.log('ttt:', token)
       if (token) return new Token(token)
     }
     // check if there is a valid token by client
     if (client && !user) {
+      console.log(2222222)
       const token = await prisma.oAuthToken.findFirst({
         where: {
           clientId: client.id,
@@ -45,7 +50,10 @@ export class TokenRepository implements OAuthTokenRepository {
       if (token) return new Token(token)
     }
     // create new token
+    console.log(33333)
+    console.log('今天', new Date())
     const { accessTokenExpiresAt } = useRuntimeConfig().oauth.server
+    console.log('未来一天', new DateInterval(accessTokenExpiresAt).getEndDate())
     return new Token({
       accessToken: generateRandomToken(),
       accessTokenExpiresAt: new DateInterval(accessTokenExpiresAt).getEndDate(),
@@ -93,6 +101,7 @@ export class TokenRepository implements OAuthTokenRepository {
   }
 
   async persist({ user, client, scopes, ...token }: Token): Promise<void> {
+    console.log('persist', token)
     await this.prisma.oAuthToken.upsert({
       where: {
         accessToken: token.accessToken
